@@ -7,6 +7,13 @@ use warnings;
 
 use Getopt::Long;
 
+use vars qw( $PROGRAM_BASE $VERSION $RELEASE );
+$PROGRAM_BASE = $0;
+$PROGRAM_BASE =~ s{^.*\/}{};
+
+$VERSION = '1.0.0';
+$RELEASE = '2014.07.02.01';
+
 my $GET_FILE = '-';
 my $PUT_FILE = '-';
 my ($PRETTY);
@@ -48,9 +55,38 @@ BEGIN {
 }
 
 
+sub do_version
+{
+    print STDERR $PROGRAM_BASE, ' version ', $VERSION, ' release ', $RELEASE, "\n";
+    exit 0;
+}
+
+
 sub do_usage
 {
-    my ($err) = @_;
+    my ($msg) = @_;
+    if ( defined $msg ) {
+        print STDERR "\n";
+        print STDERR "ERROR: $msg\n";
+        print STDERR "\n";
+    }
+    print STDERR "\n";
+    print STDERR "USAGE: $PROGRAM_BASE [-i <input-file>] [-o <output-file]\n";
+    print STDERR "\n";
+    print STDERR "OPTIONS:\n";
+    print STDERR "    --input   -i    Specify input  filename, default: STDIN\n";
+    print STDERR "    --output  -o    Specify output filename, default: STDOUT\n";
+    print STDERR "    --pretty  -P    Turn pretty printing on, not guaranteed, default: FALSE\n";
+    print STDERR "\n";
+    print STDERR "    --help    -h    Show this help message.\n";
+    print STDERR "    --version -v   Show version information.\n";
+    print STDERR "\n";
+    if ( defined $msg ) {
+        exit 2;
+    }
+    else {
+        exit 0;
+    }
 }
 
 
@@ -59,16 +95,12 @@ sub do_usage
 #===========================================================================
 {
     GetOptions(
-      'help|h'     => \&do_usage,
+      'help|h'     => sub {do_usage()},
+      'version|v'  => sub {do_version()},
       'input|i=s'  => \$GET_FILE,
       'output|o=s' => \$PUT_FILE,
       'pretty|P'   => \$PRETTY,
     );
-
-    do_usage('Specify Input Filename')
-        unless defined $GET_FILE;
-    do_usage('Specify Output Filename')
-        unless defined $PUT_FILE;
 
     my $get_text = read_file($GET_FILE);
     my $raw_data = decode_json($get_text);
@@ -83,31 +115,39 @@ sub do_usage
 
 sub read_file
 {
-    my $fname = shift @;
-    my $fsym;
+    my $fname = shift @_;
+    my ($fsym);
     if ( $fname eq '-' ) {
         $fsym = \*STDIN;
     }
     else {
         die "Could not read file: $fname"
-            unless( $fsym, "<$fname" ):
+            unless open( $fsym, "<$fname" );
     }
-    #TODO
-    while ( 
+    local $/ = undef;
+    my $text = <$fsym>;
+    close $fsym;
+    return $text;
 }
 
 
 sub write_file
 {
-    my $fname = shift @;
-    my $fsym;
+    my ($fname,$text) = @_;
+    my ($fsym);
     if ( $fname eq '-' ) {
         $fsym = \*STDOUT;
     }
     else {
-        die "Could not write file: $fname"
-            unless( $fsym, ">$fname" ):
+        my $ftemp = $fname . '.tmp';
+        die "Could not write file: $ftemp"
+            unless open( $fsym, ">$ftemp" );
     }
+    chomp $text;
+    print {$fsym} $text, "\n";
+    close $fsym;
+    rename $ftemp, $fname
+        unless $fname eq '-';
 }
 
 #===========================================================================
