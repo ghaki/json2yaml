@@ -4,7 +4,7 @@ Collection of small helper scripts in multiple languages for dealing with JSON a
 
 == Download
 
-The latest version of Ghaki Bool can be found at
+The latest version of Json2Yaml can be found at
 
 * git@github.com:ghaki/json2yaml.git
 
